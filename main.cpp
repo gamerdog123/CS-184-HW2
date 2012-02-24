@@ -5,10 +5,15 @@
 
 // #include "stdafx.h"
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <cstring>
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include "shaders.h"
 #include "Transform.h"
+using namespace std;
 
 int amount; // The amount of rotation for each arrow press
 
@@ -81,7 +86,7 @@ void reshape(int width, int height){
 
 
 void printHelp() {
-  std::cout << "\npress 'h' to print this message again.\n" 
+  cout << "\npress 'h' to print this message again.\n" 
        << "press '+' or '-' to change the amount of rotation that\noccurs with each arrow press.\n" 
             << "press 'g' to switch between using glm::lookAt and glm::Perspective or your own LookAt.\n"       
             << "press 'r' to reset the transformations.\n"
@@ -94,16 +99,16 @@ void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
 	case '+':
 		amount++;
-		std::cout << "amount set to " << amount << "\n" ;
+		cout << "amount set to " << amount << "\n" ;
 		break;
 	case '-':
 		amount--;
-		std::cout << "amount set to " << amount << "\n" ; 
+		cout << "amount set to " << amount << "\n" ; 
 		break;
 	case 'g':
 		useGlu = !useGlu;
                 reshape(w,h) ; 
-		std::cout << "Using glm::LookAt and glm::Perspective set to: " << (useGlu ? " true " : " false ") << "\n" ; 
+		cout << "Using glm::LookAt and glm::Perspective set to: " << (useGlu ? " true " : " false ") << "\n" ; 
 		break;
 	case 'h':
 		printHelp();
@@ -119,15 +124,15 @@ void keyboard(unsigned char key, int x, int y) {
 		break ;   
         case 'v': 
                 transop = view ;
-                std::cout << "Operation is set to View\n" ; 
+                cout << "Operation is set to View\n" ; 
                 break ; 
         case 't':
                 transop = translate ; 
-                std::cout << "Operation is set to Translate\n" ; 
+                cout << "Operation is set to Translate\n" ; 
                 break ; 
         case 's':
                 transop = scale ; 
-                std::cout << "Operation is set to Scale\n" ; 
+                cout << "Operation is set to Scale\n" ; 
 	}
 	glutPostRedisplay();
 }
@@ -245,24 +250,42 @@ void display() {
 	glutSwapBuffers();
 }
 
-void parseScene(string filename) {
-  char line [1024];   
-  ifstream inFile (filename.cstr(), ifstream::in); //Open as stream
-  if (!inFile) {
-    cout << "Could not open given file" << filename;
-    exit(1);
+bool parseLine(string line) {
+  string operator;
+  if (line.empty())
+    return true;
+  stringstream ss (stringstream::in | stringstream::out);
+  ss.str(line);
+  ss >> operator;
+  if (operator[0] == '#') {
+    return true;
   }
-  while (inFile.good()) {
-    inFile.getline(line, 1023);
-    if(!parseLine(string(line))) {
   
-      exit(1);    
-    }
-  }
-  inFile.close();
+  if (ss.fail())
+    return false;
+  return true;
 }
 
+void parseScene(const char* filename) {
+  ifstream inFile;
+  inFile.open("hw1.txt", ifstream::in);
+  if (!inFile) {
+    cout << "Could not open file";
+    exit(1);
+  }
+  char line[1024];
+
+  while (inFile.good()) {
+    inFile.getline(line, 1023);
+    if (!parseLine(string(line)))
+      exit(1);
+    printf("Line: %s \n", line);
+  }
+}
+
+
 int main(int argc, char* argv[]) {
+  parseScene(argv[0]);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutCreateWindow("HW2");
