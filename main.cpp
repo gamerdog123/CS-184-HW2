@@ -13,7 +13,9 @@
 #include <GL/glut.h>
 #include "shaders.h"
 #include "Transform.h"
+
 using namespace std;
+
 
 int amount; // The amount of rotation for each arrow press
 
@@ -24,20 +26,42 @@ const vec3 upinit(0.0,1.0,0.0) ; // Initial up position, also for resets
 bool useGlu; // Toggle use of "official" opengl/glm transform vs user code
 int w, h; // width and height 
 GLuint vertexshader, fragmentshader, shaderprogram ; // shaders
-static enum {view, translate, scale} transop ; // which operation to transform by 
+static enum {view, translate, scale, zerol, onel, twol, threel, fourl, fivel, sixl, sevenl, eightl, ninel} transop ; // which operation to transform by 
 float sx, sy ; // the scale in x and y 
 float tx, ty ; // the translation in x and y
 
 // Constants to set up lighting on the teapot
-const GLfloat light_position[] = {0, 5, 10, 1};    // Position of light 0
+const GLfloat light_position0[] = {0, 5,10, 1};    // Position of light 0
 const GLfloat light_position1[] = {0, 5, -10, 1};  // Position of light 1
-const GLfloat light_specular[] = {0.6, 0.3, 0, 1};    // Specular of light 0
+const GLfloat light_position2[] = {0, 0, 10, 1};
+/*const GLfloat light_position3[4];
+const GLfloat light_position4[4];
+const GLfloat light_position5[4];
+const GLfloat light_position6[4];
+const GLfloat light_position7[4];
+const GLfloat light_position8[4];
+const GLfloat light_position9[4];
+*/
+//const GLfloat light_positiondef[] = {0, 0, 0, 1};  
+const GLfloat light_specular0[] = {0.6, 0.3, 0, 1};    // Specular of light 0
 const GLfloat light_specular1[] = {0, 0.3, 0.6, 1};   // Specular of light 1
+const GLfloat light_specular2[] = {0, 0.3, 0.6, 1};
+/*const GLfloat light_specular3[4];
+const GLfloat light_specular4[4];
+const GLfloat light_specular5[4];
+const GLfloat light_specular6[4];
+const GLfloat light_specular7[4];
+const GLfloat light_specular8[4];
+const GLfloat light_specular9[4];
+*/
+vec3 lightUp;
+vec3 lightPos;
+const GLfloat light_speculardef[] = {0, 0, 0, 0};
 const GLfloat one[] = {1, 1, 1, 1};                 // Specular on teapot
 const GLfloat medium[] = {0.5, 0.5, 0.5, 1};        // Diffuse on teapot
 const GLfloat small[] = {0.2, 0.2, 0.2, 1};         // Ambient on teapot
 const GLfloat high[] = {100} ;                      // Shininess of teapot
-GLfloat light0[4], light1[4] ; 
+GLfloat light0[4], light0_current[4], light1[4], light1_current[4], light2[4], light2_current[4], light3[4], light3_current[4], light4[4], light4_current[4], light5[4], light5_current[4], light6[4], light6_current[4], light7[4], light7_current[4], light8[4], light8_current[4], light9[4], light9_current[4]; 
 
 // Variables to set uniform params for lighting fragment shader 
 GLuint islight ; 
@@ -48,7 +72,9 @@ GLuint light1color ;
 GLuint ambient ; 
 GLuint diffuse ; 
 GLuint specular ; 
-GLuint shininess ; 
+GLuint shininess ;
+GLuint emission;
+GLuint lights[20];
 
 // New helper transformation function to transform vector by modelview 
 // May be better done using newer glm functionality.
@@ -86,7 +112,7 @@ void reshape(int width, int height){
 
 
 void printHelp() {
-  cout << "\npress 'h' to print this message again.\n" 
+  std::cout << "\npress 'h' to print this message again.\n" 
        << "press '+' or '-' to change the amount of rotation that\noccurs with each arrow press.\n" 
             << "press 'g' to switch between using glm::lookAt and glm::Perspective or your own LookAt.\n"       
             << "press 'r' to reset the transformations.\n"
@@ -99,16 +125,16 @@ void keyboard(unsigned char key, int x, int y) {
 	switch(key) {
 	case '+':
 		amount++;
-		cout << "amount set to " << amount << "\n" ;
+		std::cout << "amount set to " << amount << "\n" ;
 		break;
 	case '-':
 		amount--;
-		cout << "amount set to " << amount << "\n" ; 
+		std::cout << "amount set to " << amount << "\n" ; 
 		break;
 	case 'g':
 		useGlu = !useGlu;
                 reshape(w,h) ; 
-		cout << "Using glm::LookAt and glm::Perspective set to: " << (useGlu ? " true " : " false ") << "\n" ; 
+		std::cout << "Using glm::LookAt and glm::Perspective set to: " << (useGlu ? " true " : " false ") << "\n" ; 
 		break;
 	case 'h':
 		printHelp();
@@ -118,21 +144,34 @@ void keyboard(unsigned char key, int x, int y) {
                 break ;
         case 'r': // reset eye and up vectors, scale and translate. 
 		eye = eyeinit ; 
-		up = upinit ; 
-                sx = sy = 1.0 ; 
-                tx = ty = 0.0 ; 
+		up = upinit ;
+        sx = sy = 1.0 ; 
+        tx = ty = 0.0 ;
+		light0_current[0] = light_position0[0];
+		light0_current[1] = light_position0[1];
+		light0_current[2] = light_position0[2];
+		light0_current[4] = light_position0[3];
 		break ;   
         case 'v': 
                 transop = view ;
-                cout << "Operation is set to View\n" ; 
+                std::cout << "Operation is set to View\n" ; 
                 break ; 
         case 't':
                 transop = translate ; 
-                cout << "Operation is set to Translate\n" ; 
+                std::cout << "Operation is set to Translate\n" ; 
                 break ; 
         case 's':
                 transop = scale ; 
-                cout << "Operation is set to Scale\n" ; 
+                std::cout << "Operation is set to Scale\n" ;
+				break;
+		case '0':
+				transop = zerol;
+				vec3 w0 = glm::normalize(vec3(light0[0], light0[1],light0[2]));
+				vec3 u0 = glm::normalize(glm::cross(up, w0));
+				lightUp = glm::normalize(glm::cross(w0, u0));
+				lightPos = vec3(light0_current[0], light0_current[1], light0_current[2]);
+				std::cout << "Operation is set to move light 0\n";
+
 	}
 	glutPostRedisplay();
 }
@@ -145,23 +184,47 @@ void specialKey(int key, int x, int y) {
 	case 100: //left
           if (transop == view) Transform::left(amount, eye,  up);
           else if (transop == scale) sx -= amount * 0.01 ; 
-          else if (transop == translate) tx -= amount * 0.01 ; 
-          break;
+          else if (transop == translate) tx -= amount * 0.01 ;
+		  else if (transop == zerol) {
+			  Transform::left(amount, lightPos, lightUp);
+			  light0_current[0] = lightPos.x;
+			  light0_current[1] = lightPos.y;
+			  light0_current[2] = lightPos.z;
+		  }
+		  break;
 	case 101: //up
           if (transop == view) Transform::up(amount,  eye,  up);
           else if (transop == scale) sy += amount * 0.01 ; 
           else if (transop == translate) ty += amount * 0.01 ; 
-          break;
+          else if (transop == zerol) {
+			  Transform::up(amount, lightPos, lightUp);
+			  light0_current[0] = lightPos.x;
+			  light0_current[1] = lightPos.y;
+			  light0_current[2] = lightPos.z;
+		  }
+		  break;
 	case 102: //right
           if (transop == view) Transform::left(-amount, eye,  up);
           else if (transop == scale) sx += amount * 0.01 ; 
           else if (transop == translate) tx += amount * 0.01 ; 
-          break;
+          else if (transop == zerol) {
+			  Transform::left(-amount, lightPos, lightUp);
+			  light0_current[0] = lightPos.x;
+			  light0_current[1] = lightPos.y;
+			  light0_current[2] = lightPos.z;
+		  }
+		  break;
 	case 103: //down
           if (transop == view) Transform::up(-amount,  eye,  up);
           else if (transop == scale) sy -= amount * 0.01 ; 
           else if (transop == translate) ty -= amount * 0.01 ; 
-          break;
+          else if (transop == zerol) {
+			  Transform::up(-amount, lightPos, lightUp);
+			  light0_current[0] = lightPos.x;
+			  light0_current[1] = lightPos.y;
+			  light0_current[2] = lightPos.z;
+		  }
+		  break;
 	}
 	glutPostRedisplay();
 }
@@ -173,12 +236,24 @@ void init() {
   // Set up initial position for eye, up and amount
   // As well as booleans 
 
-        eye = eyeinit ; 
+    eye = eyeinit ; 
 	up = upinit ; 
 	amount = 5;
         sx = sy = 1.0 ; 
         tx = ty = 0.0 ;
 	useGlu = false;
+	light0_current[0] = light_position0[0];
+	light0_current[1] = light_position0[1];
+	light0_current[2] = light_position0[2];
+	light0_current[4] = light_position0[3];
+	light1_current[0] = light_position1[0];
+	light1_current[1] = light_position1[1];
+	light1_current[2] = light_position1[2];
+	light1_current[4] = light_position1[3];
+	light2_current[0] = light_position2[0];
+	light2_current[1] = light_position2[1];
+	light2_current[2] = light_position2[2];
+	light2_current[4] = light_position2[3];
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -198,7 +273,30 @@ void init() {
       ambient = glGetUniformLocation(shaderprogram,"ambient") ;       
       diffuse = glGetUniformLocation(shaderprogram,"diffuse") ;       
       specular = glGetUniformLocation(shaderprogram,"specular") ;       
-      shininess = glGetUniformLocation(shaderprogram,"shininess") ;       
+      shininess = glGetUniformLocation(shaderprogram,"shininess") ;
+	  emission = glGetUniformLocation(shaderprogram,"emmision");
+	  lights[0] = glGetUniformLocation(shaderprogram, "lights[0]");
+	  lights[1] = glGetUniformLocation(shaderprogram, "lights[1]");
+	  lights[2] = glGetUniformLocation(shaderprogram, "lights[2]");
+	  lights[3] = glGetUniformLocation(shaderprogram, "lights[3]");
+	  lights[4] = glGetUniformLocation(shaderprogram, "lights[4]");
+	  lights[5] = glGetUniformLocation(shaderprogram, "lights[5]");
+	  lights[6] = glGetUniformLocation(shaderprogram, "lights[6]");
+	  lights[7] = glGetUniformLocation(shaderprogram, "lights[7]");
+	  lights[8] = glGetUniformLocation(shaderprogram, "lights[8]");
+	  lights[9] = glGetUniformLocation(shaderprogram, "lights[9]");
+	  lights[10] = glGetUniformLocation(shaderprogram, "lights[10]");
+	  lights[11] = glGetUniformLocation(shaderprogram, "lights[11]");
+	  lights[12] = glGetUniformLocation(shaderprogram, "lights[12]");
+	  lights[13] = glGetUniformLocation(shaderprogram, "lights[13]");
+	  lights[14] = glGetUniformLocation(shaderprogram, "lights[14]");
+	  lights[15] = glGetUniformLocation(shaderprogram, "lights[15]");
+	  lights[16] = glGetUniformLocation(shaderprogram, "lights[16]");
+	  lights[17] = glGetUniformLocation(shaderprogram, "lights[17]");
+	  lights[18] = glGetUniformLocation(shaderprogram, "lights[18]");
+	  lights[19] = glGetUniformLocation(shaderprogram, "lights[19]");
+
+	  
 }
 
 void display() {
@@ -221,13 +319,33 @@ void display() {
         // Lights are transformed by current modelview matrix. 
         // The shader can't do this globally. 
         // So we need to do so manually.  
-        transformvec(light_position, light0) ; 
-        transformvec(light_position1, light1) ; 
- 
-		glUniform4fv(light0posn, 1, light0) ; 
-        glUniform4fv(light0color, 1, light_specular) ; 
-        glUniform4fv(light1posn, 1, light1) ; 
-        glUniform4fv(light1color, 1, light_specular1) ; 
+        
+		//transformvec(light_positiondef, lightdefault);
+		transformvec(light0_current, light0) ; 
+	    transformvec(light1_current, light1) ;
+		transformvec(light2_current, light2) ;
+		/*transformvec(light3_current, light3) ; 
+	    transformvec(light4_current, light4) ;
+		transformvec(light5_current, light5) ;
+		transformvec(light6_current, light6) ; 
+	    transformvec(light7_current, light7) ;
+		transformvec(light8_current, light8) ;
+		transformvec(light9_current, light9) ;
+		*/
+		//glUniform4fv(light0posn, 1, light0) ; 
+        //glUniform4fv(light0color, 1, light_specular) ; 
+        //glUniform4fv(light1posn, 1, light1) ; 
+        //glUniform4fv(light1color, 1, light_specular1) ;
+		glUniform4fv(lights[0] , 1, light0);
+		glUniform4fv(lights[1] , 1, light_specular0);
+		glUniform4fv(lights[2] , 1, light1);
+		glUniform4fv(lights[3] , 1, light_specular1);
+		glUniform4fv(lights[4] , 1, light2);
+		glUniform4fv(lights[5] , 1, light_specular2);
+		//for (int i = 0; i < 20; i = i + 2){
+		//	glUniform4fv(lights[2*i] , 1, lightdefault);
+		//	glUniform4fv(lights[2*i + 1] , 1, light_speculardef);
+		//}
 
         //glUniform4fv(ambient,1,small) ; 
         //glUniform4fv(diffuse,1,medium) ; 
@@ -251,14 +369,96 @@ void display() {
 }
 
 bool parseLine(string line) {
-  string operator;
+  string operators;
   if (line.empty())
     return true;
   stringstream ss (stringstream::in | stringstream::out);
   ss.str(line);
-  ss >> operator;
-  if (operator[0] == '#') {
+  ss >> operators;
+  if (operators[0] == '#') {
     return true;
+  }
+  else  {
+    switch (operators)
+    {
+      case ("size"):
+      float width, height;
+      ss >> width >> height;
+      return true;
+      break;
+      case ("camera"):
+      float lookfromx, lookfromy, lookfromz, lookatx, lookaty, lookatz, upx, upy, upz, fovy;
+      ss >> lookfromx >> lookfromy >> lookfromz >> lookatx >> lookaty >> lookatz >> upx >> upy >> upz >> fovy;
+      return true;
+      break;
+      case ("light"):
+      float x, y, z, w, r, g, b, a;
+      ss >> x >> y >> z >> w >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("ambient"):
+      float r, g, b, a;
+      ss >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("diffuse"):
+      float r, g, b, a;
+      ss >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("specular"):
+      float r, g, b, a;
+      ss >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("emission"):
+      float r, g, b, a;
+      ss >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("shininess"):
+      float r, g, b, a;
+      ss >> r >> g >> b >> a;
+      return true;
+      break;
+      case ("teapot"):
+      float size;
+      ss >> size;
+      return true;
+      break;
+      case ("sphere"):
+      float size;
+      ss >> size;
+      return true;
+      break;
+      case ("cube"):
+      float size;
+      ss >> size;
+      return true;
+      break;
+      case ("translate"):
+      float x, y, z;
+      ss >> x >> y >> z;
+      return true;
+      break;
+      case ("rotate"):
+      float x, y, z, theta;
+      ss >> x >> y >> z >> theta;
+      return true;
+      break;
+      case ("scale"):
+      float x, y, z;
+      ss >> x >> y >> z;
+      return true;
+      break;
+      case ("pushTransform"):
+      return true;
+      break;
+      case ("popTransform"):
+      return true;
+      break;
+      
+    }
   }
   
   if (ss.fail())
@@ -268,7 +468,8 @@ bool parseLine(string line) {
 
 void parseScene(const char* filename) {
   ifstream inFile;
-  inFile.open("hw1.txt", ifstream::in);
+  printf("%s\n", filename);
+  inFile.open(filename, ifstream::in);
   if (!inFile) {
     cout << "Could not open file";
     exit(1);
@@ -283,9 +484,8 @@ void parseScene(const char* filename) {
   }
 }
 
-
 int main(int argc, char* argv[]) {
-  parseScene(argv[0]);
+	parseScene(argv[1]);
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutCreateWindow("HW2");

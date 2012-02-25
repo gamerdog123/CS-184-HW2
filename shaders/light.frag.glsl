@@ -19,7 +19,8 @@ uniform int islight ; // are we lighting.
 uniform vec4 light0posn ; 
 uniform vec4 light0color ; 
 uniform vec4 light1posn ; 
-uniform vec4 light1color ; 
+uniform vec4 light1color ;
+uniform vec4 lights[20]; 
 
 // Now, set the material parameters.  These could be varying and/or bound to 
 // a buffer.  But for now, I'll just make them uniform.  
@@ -29,6 +30,7 @@ uniform vec4 light1color ;
 uniform vec4 ambient ; 
 uniform vec4 diffuse ; 
 uniform vec4 specular ; 
+uniform vec4 emission;
 uniform float shininess ; 
 
 vec4 ComputeLight (const in vec3 direction, const in vec4 lightcolor, const in vec3 normal, const in vec3 halfvec, const in vec4 mydiffuse, const in vec4 myspecular, const in float myshininess) {
@@ -61,17 +63,50 @@ void main (void)
         vec3 normal = normalize(_normal) ; 
 
         // Light 0, point
-        vec3 position0 = light0posn.xyz / light0posn.w ; 
-        vec3 direction0 = normalize (position0 - mypos) ; // no attenuation 
-        vec3 half0 = normalize (direction0 + eyedirn) ;  
-        vec4 col0 = ComputeLight(direction0, light0color, normal, half0, diffuse, specular, shininess) ;
+        //vec3 position0; 
+        //vec3 direction0; // no attenuation 
+		//if (light0posn.w == 0){
+		//	position0 = light0posn.xyz;
+		//	direction0 = normalize(light0posn.xyz);
+		//}
+		//else{
+		//	position0 = light0posn.xyz / light0posn.w;
+		//	direction0 = normalize (position0 - mypos);
+		//}
+		//vec4 test = (gl_NormalMatrix * light0posn.xyz);
+		//vec3 direction0 = normalize(light0posn.xyz);
+        //vec3 half0 = normalize (direction0 + eyedirn) ;  
+        //vec4 col0 = ComputeLight(direction0, light0color, normal, half0, diffuse, specular, shininess) ;
 
         // Light 1, point 
-        vec3 position1 = light1posn.xyz / light1posn.w ; 
-        vec3 direction1 = normalize (position1 - mypos) ; // no attenuation 
-        vec3 half1 = normalize (direction1 + eyedirn) ;  
-        vec4 col1 = ComputeLight(direction1, light1color, normal, half1, diffuse, specular, shininess) ;
+        //vec3 position1 = light1posn.xyz / light1posn.w ; 
+        //vec3 direction1 = normalize (position1 - mypos) ; // no attenuation
+		//vec3 position1 = lights[0].xyz / lights[0].w;
+		//vec3 direction1 = normalize (position1 - mypos) ; // no attenuation
+        //vec3 half1 = normalize (direction1 + eyedirn) ;  
+        //vec4 col1 = ComputeLight(direction1, lights[1], normal, half1, diffuse, specular, shininess) ;
+
+		//vec3 position2 = lights[2].xyz / lights[2].w;
+		//vec3 direction2 = normalize (position2 - mypos) ; // no attenuation
+        //vec3 half2 = normalize (direction2 + eyedirn) ;  
+        //vec4 col2 = ComputeLight(direction2, lights[3], normal, half1, diffuse, specular, shininess) ;
         
-        gl_FragColor = ambient + col0 + col1 ; 
+		gl_FragColor = ambient + emission ;
+		
+		for(int i = 0; i < 20; i = i + 2){
+			vec3 positionlight, directionlight;
+			if (lights[i].w == 0){
+				directionlight = normalize(lights[i].xyz);
+			}
+			else{
+				positionlight = lights[i].xyz / lights[i].w;
+				directionlight = normalize (positionlight - mypos) ; // no attenuation
+			}
+			vec3 halflight = normalize (directionlight + eyedirn) ;  
+			vec4 collight = ComputeLight(directionlight, lights[i + 1], normal, halflight, diffuse, specular, shininess) ;
+			gl_FragColor = gl_FragColor + collight;
+		}
+
+        
         }
 }
